@@ -23,6 +23,10 @@ func main() {
 		essentials.ConcurrentMap(0, len(dataset.Samples), func(i int) {
 			sample := dataset.Samples[i]
 			name := fmt.Sprintf("%s/%05d", name, i)
+			outPath := name + ".json"
+			if _, err := os.Stat(outPath); err == nil {
+				return
+			}
 			mesh := SampleToMesh(sample)
 			beziers := MeshToBeziers(mesh)
 			obj := map[string]interface{}{
@@ -31,7 +35,7 @@ func main() {
 			}
 			data, err := json.Marshal(obj)
 			essentials.Must(err)
-			essentials.Must(ioutil.WriteFile(name+".json", data, 0644))
+			essentials.Must(ioutil.WriteFile(outPath, data, 0644))
 		})
 	}
 }
