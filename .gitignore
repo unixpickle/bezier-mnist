@@ -1,0 +1,4 @@
+train/
+test/
+__pycache__
+*.egg-info
