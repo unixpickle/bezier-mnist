@@ -41,23 +41,39 @@ func main() {
 }
 
 func MeshToBeziers(m *model2d.Mesh) [][]model2d.BezierCurve {
+	var res [][]model2d.BezierCurve
+	for _, h := range model2d.MeshToHierarchy(m) {
+		res = append(res, HierarchyToBeziers(h)...)
+	}
+	return res
+}
+
+func HierarchyToBeziers(m *model2d.MeshHierarchy) [][]model2d.BezierCurve {
+	segs := m.Mesh.SegmentSlice()
+	if len(segs) == 0 {
+		return nil
+	}
+	seg := segs[0]
+	points := make([]model2d.Coord, 0, len(segs)+1)
+	points = append(points, seg[0], seg[1])
+	m.Mesh.Remove(seg)
+	for i := 1; i < len(segs); i++ {
+		next := m.Mesh.Find(seg[1])
+		if len(next) != 1 {
+			panic("mesh is non-manifold")
+		}
+		seg = next[0]
+		m.Mesh.Remove(seg)
+		points = append(points, seg[1])
+	}
 	fitter := &model2d.BezierFitter{
 		Tolerance: 1e-5,
 		L2Penalty: 1e-8,
 		Momentum:  0.5,
 	}
-	curves := fitter.Fit(m)
-	var res [][]model2d.BezierCurve
-	for len(curves) > 0 {
-		subset := []model2d.BezierCurve{curves[0]}
-		for i, c := range curves[1:] {
-			subset = append(subset, c)
-			if c[3] == curves[0][0] {
-				curves = curves[i+2:]
-				break
-			}
-		}
-		res = append(res, subset)
+	res := [][]model2d.BezierCurve{fitter.FitChain(points[:len(points)-1], true)}
+	for _, child := range m.Children {
+		res = append(res, HierarchyToBeziers(child)...)
 	}
 	return res
 }
