@@ -37,7 +37,7 @@ def main():
     print(f"total parameters: {param_count}")
 
     # Create an optimizer for the model parameters.
-    opt = Adam(model.parameters(), lr=1e-3)
+    opt = Adam(model.parameters(), lr=1e-4)
 
     def compute_loss(tokens):
         targets = torch.cat(
