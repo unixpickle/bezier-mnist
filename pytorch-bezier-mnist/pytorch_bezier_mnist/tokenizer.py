@@ -99,7 +99,7 @@ class Tokenizer:
             x[1] < self.num_delimiters + self.num_bins
             or x[1] >= self.num_delimiters + self.num_bins * 2
         ):
-            raise ValueError(f"not a fractionla token: {x[1]}")
+            raise ValueError(f"not a fractional token: {x[1]}")
         return (
             self.bin_starts[x[0] - self.num_delimiters]
             + self.small_bins[x[1] - (self.num_delimiters + self.num_bins)]
