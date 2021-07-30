@@ -7,7 +7,10 @@ from torch.utils.data import DataLoader
 from pytorch_bezier_mnist import TokenBezierMNIST
 
 DATA_DIR = "../../"
+MODEL_PATH = "model.pt"
 BATCH_SIZE = 4
+LOG_INTERVAL = 10
+SAVE_INTERVAL = 1000
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -36,25 +39,36 @@ def main():
     # Create an optimizer for the model parameters.
     opt = Adam(model.parameters(), lr=1e-3)
 
-    i = 0
-    epoch = 0
-    while True:
-        for j, (tokens, _labels) in enumerate(loader):
-            targets = torch.cat(
-                [tokens[:, 1:], torch.zeros_like(tokens[:, -1:]) + tokenizer.end_token],
-                dim=1,
-            )
-            logits = model(targets.to(DEVICE)).cpu()
-            loss = F.cross_entropy(logits.permute(0, 2, 1), targets)
-            opt.zero_grad()
-            loss.backward()
-            opt.step()
-            if j % 10 == 0:
-                print(f"step {i}: loss={loss.item()}")
-            i += 1
+    def compute_loss(tokens):
+        targets = torch.cat(
+            [
+                tokens[:, 1:],
+                torch.zeros_like(tokens[:, -1:]) + tokenizer.end_token,
+            ],
+            dim=1,
+        )
+        logits = model(targets.to(DEVICE)).cpu()
+        return F.cross_entropy(logits.permute(0, 2, 1), targets)
 
-        print(f"*** epoch {epoch} complete!")
-        epoch += 1
+    for i, ((train_tokens, _), (test_tokens, _)) in enumerate(
+        zip(load_forever(loader), load_forever(test_loader))
+    ):
+        loss = compute_loss(train_tokens)
+        opt.zero_grad()
+        loss.backward()
+        opt.step()
+        if i % LOG_INTERVAL == 0:
+            with torch.no_grad():
+                test_loss = compute_loss(test_tokens)
+            print(f"step {i}: train={loss.item()} test={test_loss.item()}")
+        if i % SAVE_INTERVAL == 0:
+            torch.save(model.state_dict(), MODEL_PATH)
+
+
+def load_forever(loader):
+    while True:
+        for x in loader:
+            yield x
 
 
 class TransformerModel(nn.Module):
