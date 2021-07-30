@@ -9,6 +9,8 @@ from pytorch_bezier_mnist import TokenBezierMNIST
 DATA_DIR = "../../"
 BATCH_SIZE = 4
 
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 
 def main():
     # Create the training dataset loader.
@@ -27,6 +29,7 @@ def main():
     seq_len = dataset.seq_len
 
     model = TransformerModel(tokenizer.num_tokens, seq_len)
+    model.to(DEVICE)
     param_count = sum(x.numel() for x in model.parameters())
     print(f"total parameters: {param_count}")
 
@@ -41,7 +44,7 @@ def main():
                 [tokens[:, 1:], torch.zeros_like(tokens[:, -1:]) + tokenizer.end_token],
                 dim=1,
             )
-            logits = model(targets)
+            logits = model(targets.to(DEVICE)).cpu()
             loss = F.cross_entropy(logits.permute(0, 2, 1), targets)
             opt.zero_grad()
             loss.backward()
@@ -64,13 +67,15 @@ class TransformerModel(nn.Module):
         # https://pytorch.org/tutorials/beginner/transformer_tutorial.html
         layer = nn.TransformerEncoderLayer(256, 4, dim_feedforward=1024, dropout=0.0)
         self.transformer_encoder = nn.TransformerEncoder(layer, 8)
-        self.register_buffer(
-            "mask",
-            torch.triu(
-                torch.ones(seq_len, seq_len, dtype=torch.bool),
-                diagonal=1,
-            ),
+
+        # https://discuss.pytorch.org/t/how-to-add-padding-mask-to-nn-transformerencoder-module/63390/3
+        mask = (torch.triu(torch.ones(seq_len, seq_len)) == 1).transpose(0, 1)
+        mask = (
+            mask.float()
+            .masked_fill(mask == 0, float("-inf"))
+            .masked_fill(mask == 1, float(0.0))
         )
+        self.register_buffer("mask", mask)
 
     def forward(self, seq):
         """
