@@ -1,11 +1,13 @@
 import json
 import os
 import random
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import torch
 from torch.utils.data import Dataset
 from torchvision.datasets.utils import download_and_extract_archive
+
+from .tokenizer import Tokenizer
 
 
 class BezierMNIST(Dataset):
@@ -80,10 +82,34 @@ class BezierMNIST(Dataset):
         return loops, obj["label"]
 
 
+class TokenBezierMNIST(BezierMNIST):
+    """
+    A dataset which flattens each sample into a discrete sequence of tokens.
+    """
+
+    def __init__(
+        self, *args, tokenizer: Optional[Tokenizer] = None, seq_len: int = 400, **kwargs
+    ):
+        super().__init__(*args, **kwargs)
+        if tokenizer is None:
+            tokenizer = Tokenizer()
+        self.tokenizer = tokenizer
+        self.seq_len = seq_len
+
+    def __getitem__(self, idx) -> Tuple[torch.Tensor, int]:
+        loops, label = super().__getitem__(idx)
+        tokens = self.tokenizer.encode_loops(loops)[: self.seq_len]
+        while len(tokens) < self.seq_len:
+            tokens.append(self.tokenizer.end_token)
+        return torch.tensor(tokens, dtype=torch.long), torch.tensor(
+            label, dtype=torch.long
+        )
+
+
 class VecBezierMNIST(BezierMNIST):
     """
-    This is a dataset which flattens all of the Bezier curves into a
-    fixed-length, zero-padded tensor.
+    A dataset which flattens all of the Bezier curves into a fixed-length,
+    zero-padded tensor.
     """
 
     def __init__(self, *args, max_curves: int = 20, **kwargs):
@@ -96,4 +122,6 @@ class VecBezierMNIST(BezierMNIST):
         while len(data) < self.max_curves * 8:
             data.append(0.0)
         data = data[: self.max_curves * 8]
-        return torch.tensor(data, dtype=torch.float32), label
+        return torch.tensor(data, dtype=torch.float32), torch.tensor(
+            label, dtype=torch.long
+        )
