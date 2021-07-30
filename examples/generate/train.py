@@ -47,7 +47,7 @@ def main():
             ],
             dim=1,
         )
-        logits = model(targets.to(DEVICE)).cpu()
+        logits = model(tokens.to(DEVICE)).cpu()
         return F.cross_entropy(logits.permute(0, 2, 1), targets)
 
     for i, ((train_tokens, _), (test_tokens, _)) in enumerate(
