@@ -13,6 +13,8 @@ from pytorch_bezier_mnist import VecBezierMNIST
 BATCH_SIZE = 64
 DATA_DIR = "../../"
 
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 
 def main():
     # Create the training dataset loader.
@@ -46,6 +48,7 @@ def main():
         nn.GELU(),
         nn.Linear(256, 10),
     )
+    model.to(DEVICE)
     param_count = sum(x.numel() for x in model.parameters())
     print(f"total parameters: {param_count}")
 
@@ -56,7 +59,7 @@ def main():
     epoch = 0
     while True:
         for j, (samples, labels) in enumerate(loader):
-            logits = model(samples)
+            logits = model(samples.to(DEVICE)).cpu()
             loss = -(F.log_softmax(logits, dim=-1)[range(len(labels)), labels]).mean()
             opt.zero_grad()
             loss.backward()
