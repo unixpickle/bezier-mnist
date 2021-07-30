@@ -80,7 +80,7 @@ def accuracy(model, loader):
     correct = 0
     for samples, labels in loader:
         with torch.no_grad():
-            preds = model(samples).argmax(-1)
+            preds = model(samples.to(DEVICE)).cpu().argmax(-1)
         total += len(labels)
         correct += (labels == preds).long().sum().item()
     return f"{(100*correct/total):.02f}%"
