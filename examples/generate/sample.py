@@ -31,6 +31,7 @@ def main():
 
     loops, complete = tokenizer.decode_loops(tokens)
     print("completeness:", complete)
+    print("num loops:", len(loops))
     with open("sample.svg", "wt") as f:
         f.write(beziers_to_svg(loops))
 
