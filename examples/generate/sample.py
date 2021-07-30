@@ -23,7 +23,7 @@ def main():
         print(f"Sampling token {len(tokens)}...")
         in_tokens = tokens + [0] * (seq_len - len(tokens))
         in_seq = torch.tensor(in_tokens, dtype=torch.long)[None]
-        probs = F.softmax(model(in_seq.to(DEVICE)).cpu(), dim=-1)[0, len(tokens)]
+        probs = F.softmax(model(in_seq.to(DEVICE)).cpu(), dim=-1)[0, len(tokens) - 1]
         choice = np.random.choice(len(probs), p=probs.detach().numpy())
         tokens.append(choice)
 
