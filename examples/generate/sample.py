@@ -27,9 +27,11 @@ def main():
         choice = np.random.choice(len(probs), p=probs.detach().numpy())
         tokens.append(choice)
 
-    print(tokens)
+    print("tokens:", tokens)
+
     loops = tokenizer.decode_loops(tokens)
-    print(beziers_to_svg(loops))
+    with open("sample.svg", "wt") as f:
+        f.write(beziers_to_svg(loops))
 
 
 if __name__ == "__main__":
