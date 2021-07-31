@@ -3,13 +3,19 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"image"
+	"image/color"
 	"io/ioutil"
+	"log"
+	"math"
 	"os"
 
 	"github.com/unixpickle/essentials"
 	"github.com/unixpickle/mnist"
 	"github.com/unixpickle/model3d/model2d"
 )
+
+const Version = 1
 
 func main() {
 	for _, name := range []string{"train", "test"} {
@@ -27,8 +33,14 @@ func main() {
 			if _, err := os.Stat(outPath); err == nil {
 				return
 			}
-			mesh := SampleToMesh(sample)
+			var mesh *model2d.Mesh
+			if Version == 1 {
+				mesh = SampleToMesh(sample)
+			} else {
+				mesh = SampleToMeshV2(sample)
+			}
 			beziers := MeshToBeziers(mesh)
+
 			obj := map[string]interface{}{
 				"label":   sample.Label,
 				"beziers": beziers,
@@ -36,6 +48,14 @@ func main() {
 			data, err := json.Marshal(obj)
 			essentials.Must(err)
 			essentials.Must(ioutil.WriteFile(outPath, data, 0644))
+
+			total := 0
+			for _, loop := range beziers {
+				total += len(loop)
+			}
+			log.Printf("Created sample %s (label %d): loops=%d, curves=%d",
+				name, sample.Label, len(beziers), total)
+			model2d.Rasterize(outPath+".png", mesh, 10.0)
 		})
 	}
 }
@@ -71,11 +91,33 @@ func HierarchyToBeziers(m *model2d.MeshHierarchy) [][]model2d.BezierCurve {
 		L2Penalty: 1e-8,
 		Momentum:  0.5,
 	}
-	res := [][]model2d.BezierCurve{fitter.FitChain(points[:len(points)-1], true)}
+
+	var curves []model2d.BezierCurve
+	for {
+		curves = fitter.FitChain(points[:len(points)-1], true)
+		if ValidateCurves(curves) {
+			break
+		}
+		log.Println("Retrying after Bezier curves contained invalid values")
+	}
+
+	res := [][]model2d.BezierCurve{curves}
 	for _, child := range m.Children {
 		res = append(res, HierarchyToBeziers(child)...)
 	}
 	return res
+}
+
+func ValidateCurves(c []model2d.BezierCurve) bool {
+	for _, x := range c {
+		for _, p := range x {
+			s := p.Norm()
+			if math.IsInf(s, 0) || math.IsNaN(s) {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 func SampleToMesh(sample mnist.Sample) *model2d.Mesh {
@@ -98,6 +140,30 @@ func SampleToMesh(sample mnist.Sample) *model2d.Mesh {
 		m := mesh.SmoothSq(iters)
 		if m.Manifold() {
 			return m
+		}
+	}
+	return mesh
+}
+
+func SampleToMeshV2(sample mnist.Sample) *model2d.Mesh {
+	img := image.NewGray(image.Rect(0, 0, 28, 28))
+	for y := 0; y < 28; y++ {
+		for x := 0; x < 28; x++ {
+			value := sample.Intensities[x+y*28]
+			img.SetGray(x, y, color.Gray{Y: uint8(value * 0xff)})
+		}
+	}
+	bmp := model2d.NewInterpBitmap(img, func(c color.Color) bool {
+		r, _, _, _ := c.RGBA()
+		return r > 0x8000
+	})
+	bmp.Interp = model2d.Bilinear
+	mesh := model2d.MarchingSquaresSearch(bmp, 0.5, 8)
+	for _, iters := range []int{30, 20, 15, 10, 5, 4, 3, 2, 1, 0} {
+		m := mesh.SmoothSq(iters)
+		if m.Manifold() {
+			mesh = m
+			break
 		}
 	}
 	return mesh
