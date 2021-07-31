@@ -1,3 +1,9 @@
+"""
+Train an autoregressive Transformer model to generate digits.
+"""
+
+import os
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -8,9 +14,10 @@ from pytorch_bezier_mnist import TokenBezierMNIST
 
 DATA_DIR = "../../"
 MODEL_PATH = "model.pt"
-BATCH_SIZE = 4
+BATCH_SIZE = 16
 LOG_INTERVAL = 10
 SAVE_INTERVAL = 1000
+LR = 1e-4
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -32,12 +39,14 @@ def main():
     seq_len = dataset.seq_len
 
     model = TransformerModel(tokenizer.num_tokens, seq_len)
+    if os.path.exists(MODEL_PATH):
+        model.load_state_dict(torch.load(MODEL_PATH, map_location="cpu"))
     model.to(DEVICE)
     param_count = sum(x.numel() for x in model.parameters())
     print(f"total parameters: {param_count}")
 
     # Create an optimizer for the model parameters.
-    opt = Adam(model.parameters(), lr=1e-4)
+    opt = Adam(model.parameters(), lr=LR)
 
     def compute_loss(tokens):
         targets = torch.cat(
@@ -72,6 +81,10 @@ def load_forever(loader):
 
 
 class TransformerModel(nn.Module):
+    """
+    A small autoregressive Transformer model.
+    """
+
     def __init__(self, num_tokens: int, seq_len: int):
         super().__init__()
         self.emb = nn.Embedding(num_tokens, 256)

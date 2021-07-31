@@ -1,3 +1,10 @@
+"""
+Sample an image from an autoregressive Transformer.
+
+If the output of the model follows the correct format, the resulting image is
+written to `sample.svg`.
+"""
+
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -14,9 +21,8 @@ def main():
     seq_len = dataset.seq_len
 
     model = TransformerModel(tokenizer.num_tokens, seq_len)
+    model.load_state_dict(torch.load(MODEL_PATH, map_location="cpu"))
     model.to(DEVICE)
-
-    model.load_state_dict(torch.load(MODEL_PATH))
 
     tokens = [tokenizer.start_token]
     while tokenizer.end_token not in tokens and len(tokens) < seq_len:
