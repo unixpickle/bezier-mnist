@@ -118,6 +118,9 @@ func FitChain(points []model2d.Coord) []model2d.BezierCurve {
 		L2Penalty: 1e-8,
 		Momentum:  0.5,
 	}
+	if Version == 2 {
+		fitter.NumIters = 200
+	}
 	for {
 		curves := fitter.FitChain(points[:len(points)-1], true)
 		if ValidateChain(curves) {
