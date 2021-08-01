@@ -18,8 +18,8 @@ github.com/unixpickle/essentials v1.3.0 h1:H258Z5Uo1pVzFjxD2rwFWzHPN3s0J0jLs5kux
 github.com/unixpickle/essentials v1.3.0/go.mod h1:dQ1idvqrgrDgub3mfckQm7osVPzT3u9rB6NK/LEhmtQ=
 github.com/unixpickle/mnist v0.0.0-20170128023510-751c4271cf3a h1:2YmEYdgEhFLhK7Y1TWyzenOz4dse4vhTH80Ro23R3eU=
 github.com/unixpickle/mnist v0.0.0-20170128023510-751c4271cf3a/go.mod h1:+HmZVOcHx9Hrk93jxoOli/FaCP5yb++SGZjb0kUPiJM=
-github.com/unixpickle/model3d v0.2.17 h1:uj7sBg9boBXQzaOgTw8X09RW1mlQGLlzaZt6bLsksKI=
-github.com/unixpickle/model3d v0.2.17/go.mod h1:Xu7k4U/wrdq//+bGAo9QrQ3lrRXA+tiV2FAf4TEf6FE=
+github.com/unixpickle/model3d v0.2.20 h1:1ZFSgA9Og1AM4UNmqEnUuYjNUHCxatayS+77VCybTg0=
+github.com/unixpickle/model3d v0.2.20/go.mod h1:Xu7k4U/wrdq//+bGAo9QrQ3lrRXA+tiV2FAf4TEf6FE=
 github.com/unixpickle/num-analysis v0.0.0-20161229165253-c45203c63047 h1:gipJz9DZGU3fgBjoaiNg+5CG9UdE7MmlBvSwNp1ulnY=
 github.com/unixpickle/num-analysis v0.0.0-20161229165253-c45203c63047/go.mod h1:H8cj39+jSz2FWTCFLirQnioHeIp6/dpu0f9Vtn2LYas=
 github.com/unixpickle/serializer v0.0.0-20170723202158-c6c092dc55bb h1:kdurEYFZ2P58xnfWtmxKWkVtFPyK80BMIaJ2zW5uskY=

@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"math"
+	"math/rand"
 	"os"
 
 	"github.com/unixpickle/essentials"
@@ -119,7 +120,17 @@ func FitChain(points []model2d.Coord) []model2d.BezierCurve {
 		Momentum:  0.5,
 	}
 	if Version == 2 {
+		// Settings to make search more precise (but expensive).
+		fitter.NoFirstGuess = true
+		fitter.LineStep = 1.5
 		fitter.NumIters = 200
+		fitter.Delta = 1e-7
+
+		// Settings to reduce strange anomalies such as un-smooth
+		// kinks, jagged small loops, and near-singularities.
+		fitter.L2Penalty = 0
+		fitter.AbsTolerance = 1e-5
+		fitter.PerimPenalty = 1e-4
 	}
 	for {
 		curves := fitter.FitChain(points[:len(points)-1], true)
@@ -187,7 +198,6 @@ func SampleToMeshV2(sample mnist.Sample) *model2d.Mesh {
 		r, _, _, _ := c.RGBA()
 		return r > 0x6000
 	})
-	bmp.Interp = model2d.Bilinear
 	mesh := model2d.MarchingSquaresSearch(bmp, 0.5, 8)
 	for _, iters := range []int{30, 20, 15, 10, 5, 4, 3, 2, 1, 0} {
 		m := mesh.SmoothSq(iters)
@@ -196,5 +206,10 @@ func SampleToMeshV2(sample mnist.Sample) *model2d.Mesh {
 			break
 		}
 	}
+	// Create a new, non-intersecting mesh that is smoother and
+	// hopefully undoes some of the shrinkage from SmoothSq().
+	collider := model2d.MeshToCollider(mesh)
+	solid := model2d.NewColliderSolidInset(collider, -0.1)
+	mesh = model2d.MarchingSquaresSearch(solid, 0.25, 8)
 	return mesh
 }
