@@ -15,7 +15,7 @@ import (
 	"github.com/unixpickle/model3d/model2d"
 )
 
-const Version = 1
+const Version = 2
 
 func main() {
 	for _, name := range []string{"train", "test"} {
@@ -55,7 +55,9 @@ func main() {
 			}
 			log.Printf("Created sample %s (label %d): loops=%d, curves=%d",
 				name, sample.Label, len(beziers), total)
-			model2d.Rasterize(outPath+".png", mesh, 10.0)
+
+			// Render the mesh we were trying to fit:
+			// model2d.Rasterize(outPath+".png", mesh, 10.0)
 		})
 	}
 }
@@ -73,7 +75,7 @@ func HierarchyToBeziers(m *model2d.MeshHierarchy) [][]model2d.BezierCurve {
 	if len(segs) == 0 {
 		return nil
 	}
-	seg := segs[0]
+	seg := segs[rand.Intn(len(segs))]
 	points := make([]model2d.Coord, 0, len(segs)+1)
 	points = append(points, seg[0], seg[1])
 	m.Mesh.Remove(seg)
@@ -86,19 +88,21 @@ func HierarchyToBeziers(m *model2d.MeshHierarchy) [][]model2d.BezierCurve {
 		m.Mesh.Remove(seg)
 		points = append(points, seg[1])
 	}
-	fitter := &model2d.BezierFitter{
-		Tolerance: 1e-5,
-		L2Penalty: 1e-8,
-		Momentum:  0.5,
+
+	numTries := 1
+	if Version == 2 {
+		numTries = 3
 	}
 
 	var curves []model2d.BezierCurve
-	for {
-		curves = fitter.FitChain(points[:len(points)-1], true)
-		if ValidateCurves(curves) {
-			break
+	shortest := math.Inf(1)
+	for i := 0; i < numTries; i++ {
+		chain := FitChain(points)
+		length := ChainLength(chain)
+		if length < shortest {
+			shortest = length
+			curves = chain
 		}
-		log.Println("Retrying after Bezier curves contained invalid values")
 	}
 
 	res := [][]model2d.BezierCurve{curves}
@@ -108,7 +112,22 @@ func HierarchyToBeziers(m *model2d.MeshHierarchy) [][]model2d.BezierCurve {
 	return res
 }
 
-func ValidateCurves(c []model2d.BezierCurve) bool {
+func FitChain(points []model2d.Coord) []model2d.BezierCurve {
+	fitter := &model2d.BezierFitter{
+		Tolerance: 1e-5,
+		L2Penalty: 1e-8,
+		Momentum:  0.5,
+	}
+	for {
+		curves := fitter.FitChain(points[:len(points)-1], true)
+		if ValidateChain(curves) {
+			return curves
+		}
+		log.Println("Retrying after Bezier curves contained invalid values")
+	}
+}
+
+func ValidateChain(c []model2d.BezierCurve) bool {
 	for _, x := range c {
 		for _, p := range x {
 			s := p.Norm()
@@ -118,6 +137,14 @@ func ValidateCurves(c []model2d.BezierCurve) bool {
 		}
 	}
 	return true
+}
+
+func ChainLength(c []model2d.BezierCurve) float64 {
+	var res float64
+	for _, curve := range c {
+		res += curve.Length(1e-4, 0)
+	}
+	return res
 }
 
 func SampleToMesh(sample mnist.Sample) *model2d.Mesh {
@@ -155,7 +182,7 @@ func SampleToMeshV2(sample mnist.Sample) *model2d.Mesh {
 	}
 	bmp := model2d.NewInterpBitmap(img, func(c color.Color) bool {
 		r, _, _, _ := c.RGBA()
-		return r > 0x8000
+		return r > 0x6000
 	})
 	bmp.Interp = model2d.Bilinear
 	mesh := model2d.MarchingSquaresSearch(bmp, 0.5, 8)
