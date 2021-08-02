@@ -132,11 +132,16 @@ func FitChain(points []model2d.Coord) []model2d.BezierCurve {
 		fitter.AbsTolerance = 1e-5
 		fitter.PerimPenalty = 1e-4
 	}
+	points = points[:len(points)-1]
 	for {
-		curves := fitter.FitChain(points[:len(points)-1], true)
+		curves := fitter.FitChain(points, true)
 		if ValidateChain(curves) {
 			return curves
 		}
+		// Reshuffle the points, because Bezier fitting may
+		// deterministically fail for some orderings.
+		newStart := rand.Intn(len(points))
+		points = append(append([]model2d.Coord{}, points[newStart:]...), points[:newStart]...)
 		log.Println("Retrying after Bezier curves contained invalid values")
 	}
 }
