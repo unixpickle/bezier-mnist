@@ -76,7 +76,7 @@ func HierarchyToBeziers(m *model2d.MeshHierarchy) [][]model2d.BezierCurve {
 	if len(segs) == 0 {
 		return nil
 	}
-	seg := segs[rand.Intn(len(segs))]
+	seg := segs[0]
 	points := make([]model2d.Coord, 0, len(segs)+1)
 	points = append(points, seg[0], seg[1])
 	m.Mesh.Remove(seg)
@@ -129,19 +129,21 @@ func FitChain(points []model2d.Coord) []model2d.BezierCurve {
 		// Settings to reduce strange anomalies such as un-smooth
 		// kinks, jagged small loops, and near-singularities.
 		fitter.L2Penalty = 0
-		fitter.AbsTolerance = 1e-5
+		fitter.AbsTolerance = 5e-6
 		fitter.PerimPenalty = 1e-4
 	}
 	points = points[:len(points)-1]
 	for {
+		// Reshuffle the points to try different orderings
+		// every time this method is called, or every time a
+		// NaN/Inf is returned.
+		newStart := rand.Intn(len(points))
+		points = append(append([]model2d.Coord{}, points[newStart:]...), points[:newStart]...)
+
 		curves := fitter.FitChain(points, true)
 		if ValidateChain(curves) {
 			return curves
 		}
-		// Reshuffle the points, because Bezier fitting may
-		// deterministically fail for some orderings.
-		newStart := rand.Intn(len(points))
-		points = append(append([]model2d.Coord{}, points[newStart:]...), points[:newStart]...)
 		log.Println("Retrying after Bezier curves contained invalid values")
 	}
 }
@@ -192,6 +194,33 @@ func SampleToMesh(sample mnist.Sample) *model2d.Mesh {
 }
 
 func SampleToMeshV2(sample mnist.Sample) *model2d.Mesh {
+	var bestMesh *model2d.Mesh
+	bestError := math.Inf(1)
+
+	for thresh := 0.1; thresh < 0.9; thresh += 0.05 {
+		mesh := SampleToMeshV2Threshold(sample, thresh)
+		rast := model2d.Rasterizer{
+			Bounds: model2d.NewRect(model2d.XY(0, 0), model2d.XY(28, 28)),
+		}
+		out := rast.RasterizeColliderSolid(model2d.MeshToCollider(mesh))
+		var squaredError float64
+		for y := 0; y < 28; y++ {
+			for x := 0; x < 28; x++ {
+				r, _, _, _ := out.At(x, y).RGBA()
+				renderPixel := 1.0 - float64(r)/0xffff
+				mnistPixel := sample.Intensities[x+y*28]
+				squaredError += math.Pow(renderPixel-mnistPixel, 2)
+			}
+		}
+		if squaredError < bestError {
+			bestError = squaredError
+			bestMesh = mesh
+		}
+	}
+	return bestMesh
+}
+
+func SampleToMeshV2Threshold(sample mnist.Sample, threshold float64) *model2d.Mesh {
 	img := image.NewGray(image.Rect(0, 0, 28, 28))
 	for y := 0; y < 28; y++ {
 		for x := 0; x < 28; x++ {
@@ -201,7 +230,7 @@ func SampleToMeshV2(sample mnist.Sample) *model2d.Mesh {
 	}
 	bmp := model2d.NewInterpBitmap(img, func(c color.Color) bool {
 		r, _, _, _ := c.RGBA()
-		return r > 0x6000
+		return r > uint32(0xffff*threshold)
 	})
 	mesh := model2d.MarchingSquaresSearch(bmp, 0.5, 8)
 	for _, iters := range []int{30, 20, 15, 10, 5, 4, 3, 2, 1, 0} {
