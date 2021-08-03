@@ -66,6 +66,11 @@ func main() {
 func MeshToBeziers(m *model2d.Mesh) [][]model2d.BezierCurve {
 	var res [][]model2d.BezierCurve
 	for _, h := range model2d.MeshToHierarchy(m) {
+		if h.Mesh.Area() < 5.0 {
+			// Skip small blobs, since these are typically noise
+			// and are perceptually unimportant.
+			continue
+		}
 		res = append(res, HierarchyToBeziers(h)...)
 	}
 	return res
@@ -136,7 +141,7 @@ func FitChain(points []model2d.Coord) []model2d.BezierCurve {
 	for {
 		// Reshuffle the points to try different orderings
 		// every time this method is called, or every time a
-		// NaN/Inf is returned.
+		// NaN/Inf is encountered.
 		newStart := rand.Intn(len(points))
 		points = append(append([]model2d.Coord{}, points[newStart:]...), points[:newStart]...)
 
