@@ -65,8 +65,15 @@ func main() {
 
 func MeshToBeziers(m *model2d.Mesh) [][]model2d.BezierCurve {
 	var res [][]model2d.BezierCurve
+	allSmall := true
 	for _, h := range model2d.MeshToHierarchy(m) {
-		if h.Mesh.Area() < 5.0 {
+		if h.Mesh.Area() >= 5.0 {
+			allSmall = false
+			break
+		}
+	}
+	for _, h := range model2d.MeshToHierarchy(m) {
+		if h.Mesh.Area() < 5.0 && !allSmall {
 			// Skip small blobs, since these are typically noise
 			// and are perceptually unimportant.
 			continue
