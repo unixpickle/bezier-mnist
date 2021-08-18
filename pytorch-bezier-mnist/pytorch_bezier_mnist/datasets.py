@@ -25,6 +25,7 @@ class BezierMNIST(Dataset):
                   sub-directory of the whole dataset.
     :param download: if True and the split directory does not exist, download
                      it from the internet.
+    :param version: the dataset version number. Supported: 1 and 2.
     :param randomize_loops: if True, the Beziers in each loop are randomly
                             cycled each time a datum is accessed, since shapes
                             are invariant to the order of the underlying
@@ -36,6 +37,7 @@ class BezierMNIST(Dataset):
         data_dir: str,
         split: str = "train",
         download: bool = True,
+        version: int = 2,
         randomize_loops: bool = True,
     ):
         if split not in ["train", "test"]:
@@ -53,7 +55,7 @@ class BezierMNIST(Dataset):
                     f"data directory not found for split {split}: {self.split_dir}"
                 )
             # TODO: put the actual files here.
-            split_url = f"https://data.aqnichol.com/bezier-mnist/{split}.zip"
+            split_url = f"https://data.aqnichol.com/bezier-mnist/v{version}/{split}.zip"
             download_and_extract_archive(
                 split_url, self.data_dir, self.split_dir, filename=f"{split}.zip"
             )

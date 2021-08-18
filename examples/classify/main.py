@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 from pytorch_bezier_mnist import VecBezierMNIST
 
 BATCH_SIZE = 64
-DATA_DIR = "../../"
+DATA_DIR = "../../v2"
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

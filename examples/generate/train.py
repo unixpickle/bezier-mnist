@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader
 
 from pytorch_bezier_mnist import TokenBezierMNIST
 
-DATA_DIR = "../../"
+DATA_DIR = "../../v2"
 MODEL_PATH = "model.pt"
 BATCH_SIZE = 16
 LOG_INTERVAL = 10
