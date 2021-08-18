@@ -12,7 +12,7 @@ require (
 	github.com/unixpickle/autofunc v0.0.0-20170112172612-f27a3f82164a // indirect
 	github.com/unixpickle/essentials v1.3.0
 	github.com/unixpickle/mnist v0.0.0-20170128023510-751c4271cf3a
-	github.com/unixpickle/model3d v0.2.21
+	github.com/unixpickle/model3d v0.2.22
 	github.com/unixpickle/num-analysis v0.0.0-20161229165253-c45203c63047 // indirect
 	github.com/unixpickle/serializer v0.0.0-20170723202158-c6c092dc55bb // indirect
 	github.com/unixpickle/sgd v0.0.0-20161225162810-0e3d4c9d317b // indirect
