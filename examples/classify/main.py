@@ -2,6 +2,8 @@
 Train a digit classifier on Bezier curve data.
 """
 
+import argparse
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -10,26 +12,29 @@ from torch.utils.data import DataLoader
 
 from pytorch_bezier_mnist import VecBezierMNIST
 
-BATCH_SIZE = 64
 DATA_DIR = "../../v2"
-
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--batch_size", type=int, default=64)
+    parser.add_argument("--lr", type=float, default=1e-3)
+    args = parser.parse_args()
+
     # Create the training dataset loader.
     # Using the VecBezierMNIST dataset instead of the raw BezierMNIST
     # dataset will automatically flatten Bezier coordinates into a single
     # 1-dimensional Tensor to feed to our model.
     dataset = VecBezierMNIST(data_dir=DATA_DIR)
     loader = torch.utils.data.DataLoader(
-        dataset, num_workers=4, shuffle=True, batch_size=BATCH_SIZE
+        dataset, num_workers=4, shuffle=True, batch_size=args.batch_size
     )
 
     # Create the testing dataset so we can evaluate on it separately.
     test_dataset = VecBezierMNIST(data_dir=DATA_DIR, split="test")
     test_loader = torch.utils.data.DataLoader(
-        test_dataset, num_workers=4, shuffle=True, batch_size=BATCH_SIZE
+        test_dataset, num_workers=4, shuffle=True, batch_size=args.batch_size
     )
 
     # The VecBezierMNIST dataset flattens bezier curve coordinates
@@ -53,7 +58,7 @@ def main():
     print(f"total parameters: {param_count}")
 
     # Create an optimizer for the model parameters.
-    opt = Adam(model.parameters(), lr=1e-3)
+    opt = Adam(model.parameters(), lr=args.lr)
 
     i = 0
     epoch = 0

@@ -2,6 +2,7 @@
 Train an autoregressive Transformer model to generate digits.
 """
 
+import argparse
 import os
 
 import torch
@@ -13,40 +14,42 @@ from torch.utils.data import DataLoader
 from pytorch_bezier_mnist import TokenBezierMNIST
 
 DATA_DIR = "../../v2"
-MODEL_PATH = "model.pt"
-BATCH_SIZE = 16
-LOG_INTERVAL = 10
-SAVE_INTERVAL = 1000
-LR = 1e-4
-
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--batch_size", type=int, default=16)
+    parser.add_argument("--lr", type=float, default=1e-4)
+    parser.add_argument("--log_interval", type=int, default=10)
+    parser.add_argument("--save_interval", type=int, default=1000)
+    parser.add_argument("--model_path", type=str, default="model.pt")
+    args = parser.parse_args()
+
     # Create the training dataset loader.
     dataset = TokenBezierMNIST(data_dir=DATA_DIR)
     loader = torch.utils.data.DataLoader(
-        dataset, num_workers=4, shuffle=True, batch_size=BATCH_SIZE
+        dataset, num_workers=4, shuffle=True, batch_size=args.batch_size
     )
 
     # Create the testing dataset so we can evaluate on it separately.
     test_dataset = TokenBezierMNIST(data_dir=DATA_DIR, split="test")
     test_loader = torch.utils.data.DataLoader(
-        test_dataset, num_workers=4, shuffle=True, batch_size=BATCH_SIZE
+        test_dataset, num_workers=4, shuffle=True, batch_size=args.batch_size
     )
 
     tokenizer = dataset.tokenizer
     seq_len = dataset.seq_len
 
     model = TransformerModel(tokenizer.num_tokens, seq_len)
-    if os.path.exists(MODEL_PATH):
-        model.load_state_dict(torch.load(MODEL_PATH, map_location="cpu"))
+    if os.path.exists(args.model_path):
+        model.load_state_dict(torch.load(args.model_path, map_location="cpu"))
     model.to(DEVICE)
     param_count = sum(x.numel() for x in model.parameters())
     print(f"total parameters: {param_count}")
 
     # Create an optimizer for the model parameters.
-    opt = Adam(model.parameters(), lr=LR)
+    opt = Adam(model.parameters(), lr=args.lr)
 
     def compute_loss(tokens):
         targets = torch.cat(
@@ -66,12 +69,12 @@ def main():
         opt.zero_grad()
         loss.backward()
         opt.step()
-        if i % LOG_INTERVAL == 0:
+        if i % args.log_interval == 0:
             with torch.no_grad():
                 test_loss = compute_loss(test_tokens)
             print(f"step {i}: train={loss.item()} test={test_loss.item()}")
-        if i % SAVE_INTERVAL == 0:
-            torch.save(model.state_dict(), MODEL_PATH)
+        if i % args.save_interval == 0:
+            torch.save(model.state_dict(), args.model_path)
 
 
 def load_forever(loader):

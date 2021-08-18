@@ -5,6 +5,8 @@ If the output of the model follows the correct format, the resulting image is
 written to `sample.svg`.
 """
 
+import argparse
+
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -15,13 +17,17 @@ from train import DATA_DIR, DEVICE, MODEL_PATH, TransformerModel
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model_path", type=str, default="model.pt")
+    args = parser.parse_args()
+
     dataset = TokenBezierMNIST(data_dir=DATA_DIR, split="train")
 
     tokenizer = dataset.tokenizer
     seq_len = dataset.seq_len
 
     model = TransformerModel(tokenizer.num_tokens, seq_len)
-    model.load_state_dict(torch.load(MODEL_PATH, map_location="cpu"))
+    model.load_state_dict(torch.load(args.model_path, map_location="cpu"))
     model.to(DEVICE)
 
     tokens = [tokenizer.start_token]
