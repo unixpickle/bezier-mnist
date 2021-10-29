@@ -13,7 +13,7 @@ import torch.nn.functional as F
 
 from pytorch_bezier_mnist import TokenBezierMNIST, beziers_to_svg
 
-from train import DATA_DIR, DEVICE, MODEL_PATH, TransformerModel
+from train import DATA_DIR, DEVICE, TransformerModel
 
 
 def main():
